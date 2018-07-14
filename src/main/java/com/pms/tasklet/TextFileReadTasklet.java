@@ -1,6 +1,7 @@
 package com.pms.tasklet;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
@@ -46,7 +48,7 @@ public class TextFileReadTasklet implements Tasklet, InitializingBean {
         t.start();
         File dir = directory.getFile();
         Assert.state(dir.isDirectory());
-        File[] files = dir.listFiles();
+        File[] files = dir.listFiles((FilenameFilter) new WildcardFileFilter("*PROCEED.txt"));
         for (File file : files) {
             readFileInList(insertOperation, file);
         }
