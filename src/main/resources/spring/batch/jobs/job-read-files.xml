@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:batch="http://www.springframework.org/schema/batch" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/batch 
+		http://www.springframework.org/schema/batch/spring-batch-2.2.xsd
+		http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+		">
+
+    <import resource="../config/context.xml" />
+    
+    <job id="readMultiFileJob" xmlns="http://www.springframework.org/schema/batch">
+        <step id="textFileRead">
+            <tasklet ref="textFileReadTasklet" />
+        </step>
+    </job>
+ 
+    <bean id="textFileReadTasklet" class="com.pms.tasklet.TextFileReadTasklet" >
+        <property name="directory" value="file:csv/inputs/" />
+        <property name="dataSource" ref="dataSource" />
+    </bean>  
+    <!-- connect to database -->
+    <bean id="dataSource"  class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.apache.derby.jdbc.ClientDriver" />
+        <property name="url" value="jdbc:derby://localhost:1527/bms" />
+        <property name="username" value="bms" />
+        <property name="password" value="bms" />
+    </bean>
+    
+</beans>
