@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                        http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd">
+    
+    <bean id="dataSource"  class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.apache.derby.jdbc.ClientDriver" />
+        <property name="url" value="jdbc:derby://localhost:1527/bms" />
+        <property name="username" value="bms" />
+        <property name="password" value="bms" />
+    </bean>
+   
+    <bean id="reader" class="org.springframework.batch.item.database.JdbcCursorItemReader" scope="step">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="sql" value="select * from REPORT" />
+        <property name="rowMapper">
+            <bean class="com.pms.reader.MyRowMapper"/>
+        </property>
+    </bean>
+
+    <bean id="writer" class="com.pms.writers.ReportWriter" scope="step">
+        <property name="stepContext" value="firstStep"/>
+        <property name="delegate">
+            <bean class="org.springframework.batch.item.file.FlatFileItemWriter">
+                <property name="resource" value="classpath:cvs/input/DemoData2.txt"/>
+                <property name="lineAggregator">
+                    <bean class="org.springframework.batch.item.file.transform.PassThroughLineAggregator"/>
+                </property>
+                <property name="headerCallback" ref="writer"/>
+                <property name="footerCallback" ref="writer"/>
+            </bean>
+        </property>
+    </bean>
+    
+    <!-- spring batch context start -->
+    <bean id="jobRepository" class="org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean">
+        <property name="transactionManager" ref="transactionManager" />
+    </bean>
+    <bean id="transactionManager" class="org.springframework.batch.support.transaction.ResourcelessTransactionManager" />
+    <bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+        <property name="jobRepository" ref="jobRepository" />
+    </bean>
+    <!-- Must set this -->
+    <bean
+        class="org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor">
+        <property name="jobRegistry" ref="jobRegistry" />
+    </bean>
+    <bean id="jobRegistry"  class="org.springframework.batch.core.configuration.support.MapJobRegistry" />    
+    <!-- spring batch context end -->
+    
+    <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+                <property name="jobDetail" ref="jobDetailProductReport" />
+                <property name="cronExpression" value="*/15 * * * * ?" />
+            </bean>
+        </property>
+    </bean>
+    <bean id="jobDetailProductReport" class="org.springframework.scheduling.quartz.JobDetailBean">
+        <property name="jobClass" value="com.pms.quartz.JobLauncherDetails" />
+        <property name="group" value="quartz-batch" />
+        <property name="jobDataAsMap">
+            <map>
+                <entry key="jobName" value="importProductsJob" />
+                <entry key="jobLocator" value-ref="jobRegistry" />
+                <entry key="jobLauncher" value-ref="jobLauncher" />
+                <entry key="param1" value="asu1" />
+                <entry key="param2" value="asu2" />
+            </map>
+        </property>
+    </bean>
+    <batch:job id="importProductsJob">
+        <batch:step id="firstStep">
+            <batch:tasklet>
+                <batch:chunk reader="reader" writer="writer" commit-interval="10"/>
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+    
+</beans>
